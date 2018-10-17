@@ -1,0 +1,565 @@
+---
+title: "Targeted Amplicon Analysis of Putative Drug Resistance Targets \n in _P. falciparum_ Infections from Uganda"
+author: "Nicholas F. Brazeau"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    highlight: textmate
+    theme: lumen
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+editor_options: 
+  chunk_output_type: console
+---
+
+<style>
+
+table, td, th {
+  border: none;
+  padding-left: 1em;
+  padding-right: 1em;
+  min-width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+</style>
+
+
+
+# Version Control
+Nick was given the raw paths and ran SeekDeep and has performed the analysis below.
+
+# Project Summary
+## Overview
+Samples were pooled in isovulemtric volumes by site and river valley and used as template for amplicon sequencing. Amplicons were generated using the drug resistance primers and targets designed for the EPHI (minus AMA1).
+
+## Wet-Lab Summary
+PCR conditions and thermocycler conditions -- see Nick Brazeau's lab notebook for optimized conditions that were used. Library preparation was done with KAPA hyperprep kit and adapter ligation. 
+
+
+# Results 
+
+```{r packages, echo=F, warning=F, message=F, results='hide'}
+# CSS style code from SO: https://stackoverflow.com/questions/32588870/spaces-between-columns-in-stargazer-type-html-table-output
+
+# datawrangle
+library(tidyverse)
+library(stringr)
+library(DT)
+library(stargazer)
+# genomics
+library(seqinr)
+library(vcfR)
+library(Biostrings)
+#plotting
+library(ggplot2)
+library(RColorBrewer)
+library(plotly)
+
+projectpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/"
+
+
+library(devtools)
+devtools::install_github("nickbrazeau/NFBtools")
+library(NFBtools)
+
+
+```
+
+
+## Quality Control
+### MID Extraction Reports
+
+#### Overview
+```{r, echo=F, warning=F, message=F}
+
+
+
+overallextractreport <- readr::read_tsv(file=paste0(projectpath, "analysis/reports/allExtractionStats.tab.txt"), col_names = T)
+
+DT::datatable(overallextractreport, extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 20,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+```
+
+#### By MID
+```{r, echo=F, warning=F, message=F}
+
+samplemids <- readr::read_tsv(file=paste0(projectpath, "sampleNames.tab.txt"), col_names = T)
+samplemids$target <- stringr::str_split_fixed(samplemids$Sample, "[0-9][0-9]", n=2)[,2]
+samplemids <- samplemids[, !colnames(samplemids) %in% c("Sample")]
+colnames(samplemids)[1] <- "inputName"
+colnames(samplemids)[2] <- "MID"
+extractreport <- readr::read_tsv(file=paste0(projectpath, "analysis/reports/allMidCounts.tab.txt"), col_names = T)
+
+
+DT::datatable(samplemids, extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 20,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+```
+
+
+<!-- SETTING UP DATA ANLYSIS FOR THE SNPs... -->
+```{r setupdatawrangle, echo=F, warning=F, message=F}
+
+maxlinestoread <- (grep('id',readLines(paste0(projectpath, "ids.txt")))-2) # -1 for header, -1 for hit
+amptargets <- readr::read_tsv(file=paste0(projectpath, "ids.txt"), col_names = T,
+                     n_max=maxlinestoread)
+
+colnames(amptargets)[1] <- "gene"
+
+overlapamptargets <- readr::read_tsv(paste0(projectpath, "targetRefSeqs/forSeekDeep/overlapStatuses.txt"))
+
+amptargets <- amptargets[amptargets$gene %in% overlapamptargets$target[overlapamptargets$status != "NoOverLap"], c("gene")] # just need gene target of those that seekdeep will extract
+
+amptargets$paths <- paste0(projectpath, "analysis/", "popClustering/", amptargets$gene, "/", "analysis/")
+
+
+```
+
+
+## SNP Analysis 
+
+### `r toupper(paste(amptargets$gene[1]))`
+```{r, echo=F, warning=F, message=F, fig.width=9, fig.height=6, fig.align='center'}
+
+#list.files(amptargets$paths[1])
+hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[1], "hapIdTable.tab.txt"), col_names = T)
+selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[1], "selectedClustersInfo.tab.txt"), col_names = T)
+
+simp1 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+
+simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(input=simp1,  target=paste(amptargets$gene[1]))
+plotly::ggplotly(simpPlotObj)
+
+
+
+```
+
+
+### `r toupper(paste(amptargets$gene[2]))`
+```{r, echo=F, warning=F, message=F, fig.width=9, fig.height=6, fig.align='center'}
+
+hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[2], "hapIdTable.tab.txt"), col_names = T)
+selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[2], "selectedClustersInfo.tab.txt"), col_names = T)
+
+
+simp2 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+
+simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(simp2,  paste(amptargets$gene[2]))
+plotly::ggplotly(simpPlotObj)
+
+
+
+```
+
+### `r toupper(paste(amptargets$gene[3]))`
+```{r, echo=F, warning=F, message=F, fig.width=9, fig.height=6, fig.align='center'}
+
+hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[3], "hapIdTable.tab.txt"), col_names = T)
+selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[3], "selectedClustersInfo.tab.txt"), col_names = T)
+
+
+simp3 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+
+simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(simp3,  paste(amptargets$gene[3]))
+plotly::ggplotly(simpPlotObj)
+
+
+```
+
+### `r toupper(paste(amptargets$gene[4]))`
+```{r, echo=F, warning=F, message=F, fig.width=9, fig.height=6, fig.align='center'}
+
+hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[4], "hapIdTable.tab.txt"), col_names = T)
+selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[4], "selectedClustersInfo.tab.txt"), col_names = T)
+
+
+simp4 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+
+simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(simp4,  paste(amptargets$gene[4]))
+plotly::ggplotly(simpPlotObj)
+
+```
+
+
+
+## Variant Annotation
+
+
+### PfCrt
+```{r, echo=F, warning=F, message=F}
+
+
+crt_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp4, 
+                   gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
+                   geneid = "PF3D7_0709000", 
+                   ncbigeneticcode=1, 
+                   ampliconrefseqpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/PfCRT/PfCRT.fasta", 
+                   forwardprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/PfCRT/forwardPrimer.fasta", 
+                   reverseprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/PfCRT/reversePrimer.fasta" 
+                )
+
+crt_variantannot %>% 
+  dplyr::select(-c(c_Consensus, filtered_c_ReadCnt_denom)) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  DT::datatable(., extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 20,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+
+```
+
+
+### PfKelch
+```{r, echo=F, warning=F, message=F}
+
+
+kelch_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp1,
+                   gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
+                   geneid = "PF3D7_1343700", 
+                   ncbigeneticcode=1, 
+                   ampliconrefseqpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/K13/K13.fasta", 
+                   forwardprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/K13/forwardPrimer.fasta", 
+                   reverseprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/K13/reversePrimer.fasta" 
+                )
+
+kelch_variantannot %>% 
+  dplyr::select(-c(c_Consensus, filtered_c_ReadCnt_denom)) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  DT::datatable(., extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 20,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+
+```
+
+### PfMDR1E
+```{r, echo=F, warning=F, message=F}
+
+Pfmdr11_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp2, 
+                   gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
+                   geneid = "PF3D7_0523000", 
+                   ncbigeneticcode=1, 
+                   ampliconrefseqpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/MDR1E/MDR1E.fasta", 
+                   forwardprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/MDR1E/forwardPrimer.fasta", 
+                   reverseprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/MDR1E/reversePrimer.fasta" 
+                )
+
+
+Pfmdr11_variantannot %>% 
+  dplyr::select(-c(c_Consensus, filtered_c_ReadCnt_denom)) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  DT::datatable(., extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 20,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+```
+
+### PfMDR1L
+```{r, echo=F, warning=F, message=F}
+
+Pfmdr12_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp3, 
+                   gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
+                   geneid = "PF3D7_0523000", 
+                   ncbigeneticcode=1, 
+                   ampliconrefseqpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/MDR1L/MDR1L.fasta", 
+                   forwardprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/MDR1L/forwardPrimer.fasta", 
+                   reverseprimerpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/targetRefSeqs/MDR1L/reversePrimer.fasta" 
+                )
+
+
+
+Pfmdr12_variantannot %>% 
+  dplyr::select(-c(c_Consensus, filtered_c_ReadCnt_denom)) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  DT::datatable(., extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 20,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+```
+
+
+
+# Summary of Drug Resistance Mutations
+```{r, echo=F, warning=F, message=F}
+
+summ <- rbind(crt_variantannot, kelch_variantannot, Pfmdr11_variantannot, Pfmdr12_variantannot)
+varsumm <- summ %>% 
+  dplyr::mutate(AAChange = ifelse(is.na(CODON), "WT", paste0(AAREF, CODON, AAALT))) %>% 
+  dplyr::select(h_popUID, AAChange, MUT_Type, s_Sample, c_AveragedFrac_adj) %>% 
+  dplyr::arrange(h_popUID, AAChange) 
+
+DT::datatable(varsumm, extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 40,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+```
+
+
+
+# Spatial Genetic Analyses
+Goal here is to see if haplotypes differ by altitude. The altitude is a proxy for transmission intensity and we expect more DR at lower altitudes. 
+```{r read-in data, echo=F, warning=F, message=F}
+
+par <- gdata::read.xls(xls="~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/Ranalysis/Pool_Para.xlsx", sheet=1, na.strings = ".")  # convert missing to NA
+colnames(par) <- tolower(colnames(par))
+
+
+mtdt <- data.frame(pool = c(77:79, 87:89, 97:99),
+                   rval = c(rep("Nyambyagi",3), rep("Sebwe",3), rep("Mubuku",3)),
+                   elev = rep(c("high", "med", "low"), 3),
+                   n = c(3,29,24,22,31,29,21,30,30)
+                   )
+
+drugrx <- gdata::read.xls(xls="~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation_drugRx_Boyce/Ranalysis/Boyce_drugRx_Uganda_v2.xlsx", sheet=2)
+
+
+```
+  
+## Non-Parametric Approach
+#### Parasitemia by Elev
+```{r, echo=F, warning=F}
+
+eda_par <- par %>% 
+  left_join(x=., y=mtdt, by="pool") 
+
+eda_hap <- drugrx %>%
+  left_join(x=., y=mtdt, by="pool") 
+
+edariv <- eda_par %>% 
+  dplyr::group_by(rval) %>% 
+  dplyr::summarise(n=n(), missing = sum(is.na(parasitemia)), meanpar_by_rval =  round(mean(parasitemia, na.rm=T),2))
+
+DT::datatable(edariv, extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 40,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+```
+#### Parasitemia by River Valley 
+```{r, echo=F, warning=F}
+edaelev <- eda_par %>%
+  dplyr::group_by(elev) %>%
+  dplyr::summarise(n=n(), missing = sum(is.na(parasitemia)), meanpar_by_elev =  round(mean(parasitemia, na.rm=T),2))
+
+DT::datatable(edaelev, extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 40,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+
+
+
+```
+
+#### Wildtype Haplotypes by Elev & River Valley 
+```{r, echo=F, warning=F, message=F}
+DT::datatable(eda_hap, extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 40,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+```
+
+```{r, echo=F, warning=F, message=F, fig.width=11, fig.height=8}
+
+eda_hap_riv_elev_plotObj <- eda_hap %>% 
+  dplyr::filter(mutation == "WT") %>% 
+  dplyr::mutate(elev_f = factor(elev, levels=c("low", "med", "high"), labels=c("Low", "Medium", "High"))) %>% 
+  dplyr::mutate(rval_f = factor(rval, levels=c("Nyambyagi", "Sebwe", "Mubuku"))) %>% 
+  dplyr::mutate(freq_adj = ifelse(is.na(freq), 0, freq)) %>% 
+  ggplot() +
+  geom_tile(aes(x=elev_f, y=rval_f, fill=freq_adj)) +
+  facet_grid(gene ~ .) +
+  scale_fill_gradientn("WT Hap Freq", colours = c("#a50026", "#ffffbf", "#313695"), limits=c(0,1)) +
+  ggtitle("Frequency of Wildtype Haplotypes by \n Elevation across Putative Drug Resistance Gene") +
+  xlab("Elevation") + ylab("Putative Drug Resistance Gene") + 
+  theme(axis.text.x   = element_text(size=12, family="Arial", face="bold"),
+        axis.title.x  = element_text(size=14, family="Arial", face="bold"),
+        axis.text.y = element_text(size=12, family="Arial", face="bold"),
+        axis.title.y  = element_text(size=14, family="Arial", face="bold"),
+        legend.title = element_text(vjust=0.5, hjust = 0.5,size=12, family="Arial", face="bold"),
+        legend.position = "bottom", 
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_line(colour = "#d9d9d9"),
+        plot.title = element_text(hjust = 0.5, size=16, family="Arial", face="bold"),
+        panel.border = element_blank())
+  
+            
+plotly::ggplotly(eda_hap_riv_elev_plotObj)      
+
+```
+
+
+## Parametric Approach
+### Regression Modeling for Spatiogenetic Analyses  
+
+```{r, echo=F, warning=F, message=F, results='hide'}
+
+eda_hap_pfcrt <- eda_hap %>% 
+  dplyr::mutate(pfcrt_freq = freq) %>% 
+  dplyr::mutate(mutation_bin = ifelse(mutation == "WT",1,0)) %>% 
+  dplyr::filter(mutation_bin == "1") %>% 
+  dplyr::mutate(elev = factor(elev, levels= c("low", "med", "high"))) %>% 
+  dplyr::mutate(rval = factor(rval, c("Nyambyagi", "Sebwe", "Mubuku"))) %>% 
+  dplyr::filter(gene == "pfcrt")
+  
+
+eda_hap_mdr1e <- eda_hap %>% 
+  dplyr::mutate(pfmdr1e_freq = freq) %>% 
+  dplyr::mutate(mutation_bin = ifelse(mutation == "WT",1,0)) %>% 
+  dplyr::filter(mutation_bin == "1") %>% 
+  dplyr::mutate(elev = factor(elev, levels= c("low", "med", "high"))) %>% 
+  dplyr::mutate(rval = factor(rval, c("Nyambyagi", "Sebwe", "Mubuku"))) %>% 
+  dplyr::filter(gene == "Pfmdr1E")
+
+
+mod_pfcrt_1 <- lm(pfcrt_freq ~ elev + rval + elev*rval, data = eda_hap_pfcrt,
+                  weights=eda_hap_pfcrt$n)
+broom::tidy(mod_pfcrt_1)
+mod_pfcrt_2 <- lm(pfcrt_freq ~ elev + rval, data = eda_hap_pfcrt,
+                  weights=eda_hap_pfcrt$n)
+broom::tidy(mod_pfcrt_2)
+mod_pfcrt_3 <- lm(pfcrt_freq ~ elev, data = eda_hap_pfcrt, weights=eda_hap_pfcrt$n)
+broom::tidy(mod_pfcrt_3)
+mod_pfcrt_4 <- lm(pfcrt_freq ~ rval, data = eda_hap_pfcrt, weights=eda_hap_pfcrt$n)
+broom::tidy(mod_pfcrt_4)
+
+
+mod_mdre1_1 <- lm(pfmdr1e_freq ~ elev + rval + elev*rval, data = eda_hap_mdr1e,
+                  weights=eda_hap_mdr1e$n)
+broom::tidy(mod_mdre1_1)
+
+mod_mdre1_2 <- lm(pfmdr1e_freq ~ elev + rval, data = eda_hap_mdr1e,
+                  weights=eda_hap_mdr1e$n)
+broom::tidy(mod_mdre1_2)
+
+mod_mdre1_3 <- lm(pfmdr1e_freq ~ elev, data = eda_hap_mdr1e, weights=eda_hap_mdr1e$n)
+broom::tidy(mod_mdre1_3)
+
+
+mod_mdre1_4 <- lm(pfmdr1e_freq ~ rval, data = eda_hap_mdr1e, weights=eda_hap_mdr1e$n)
+broom::tidy(mod_mdre1_4)
+
+```
+```{r stargazer, echo=F, warning=F, message=F, results='asis'}
+stargazer(mod_pfcrt_1, mod_pfcrt_2, mod_pfcrt_3, mod_pfcrt_4, mod_mdre1_1, mod_mdre1_2, mod_mdre1_3, mod_mdre1_4, title = "Results of Weighted Linear Models for Hap WT Prev with 95% CI", 
+          dep.var.labels=c("Pfcrt Freq", "Mdr1E Freq"),
+          add.lines=list(c("AIC", round(AIC(mod_pfcrt_1),1), round(AIC(mod_pfcrt_2),1), round(AIC(mod_pfcrt_3),1), round(AIC(mod_mdre1_1),1),round(AIC(mod_mdre1_2),1),round(AIC(mod_mdre1_3),1))),
+          no.space=F,
+          ci=TRUE, ci.level=0.95, 
+          single.row=F,
+          align=T, 
+          type = "html")
+
+
+```
+  
+  
+```{r stargazer2, echo=F, warning=F, message=F, results='asis'}
+stargazer(mod_pfcrt_1, mod_pfcrt_2, mod_pfcrt_3, mod_pfcrt_4, mod_mdre1_1, mod_mdre1_2, mod_mdre1_3, mod_mdre1_4,
+          title = "Pvalues of Coef from Weighted Linear Models for Hap WT Prev",
+          report=('vc*p'),
+          align=T, 
+          type = "html")
+
+```
+
+
+## Final Figure (Nice Layout)
+```{r fig2, echo=F, warning=F, message=F, results='asis'}
+# Prettier final figure
+
+poolrename <- tibble(pool = c(77, 78, 79, 87, 88, 89, 97, 98, 99),
+                     poolrename = paste0("Pool ", seq(1:9)))
+eda_hap <- left_join(eda_hap, poolrename, by=c("pool"))
+
+fig2 <- eda_hap %>% 
+  dplyr::filter(mutation == "WT") %>% 
+  dplyr::filter(gene %in% c("pfcrt", "Pfmdr1E")) %>%
+  dplyr::mutate(gene_f = factor(gene, levels = c("pfcrt", "Pfmdr1E"), labels = c("pfcrt", "pfmdr1E"))) %>% 
+  dplyr::mutate(elev_f = factor(elev, levels=rev(c("low", "med", "high")), labels=rev(c("Low", "Medium", "High")))) %>% 
+  dplyr::mutate(rval_f = factor(rval, levels=c("Nyambyagi", "Sebwe", "Mubuku"))) %>% 
+  dplyr::mutate(freq_adj = ifelse(is.na(freq), 0, freq)) %>% 
+  ggplot() +
+  geom_tile(aes(x=elev_f, y=rval_f, fill=freq_adj), color = "#f0f0f0", size=0.8) +
+  geom_text(aes(x=elev_f, y=rval_f, label=poolrename), family="Arial", size = 4, fontface="bold") +
+  facet_grid(gene ~ .) +
+  scale_fill_gradientn("Wildtype Haplotype \n Frequency", colours = c("#a50026", "#ffffbf", "#313695"), limits=c(0,1)) +
+  ggtitle("Frequency of Wildtype Haplotypes by River-Valley and Elevation \n across Putative Drug Resistance Genes") +
+  xlab("Elevation") + ylab("River-Valley") + 
+  theme(axis.title.x   =   element_text(size=14, family="Arial", face="bold", margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y  =    element_text(size=14, family="Arial", face="bold", margin = margin(t = 0, r = 15, b = 0, l = 0)),
+        axis.text.x  =     element_text(size=12, family="Arial", face="bold", colour="#000000"),
+        axis.text.y =      element_text(size=12, family="Arial", face="bold", colour="#000000"),
+        legend.title =     element_text(vjust=0.5, hjust = 0.5,size=12, family="Arial", face="bold"),
+        legend.text =      element_text(size=10, family="Arial", angle = 270, hjust = 1, vjust = 0, face="bold"),
+        legend.position =  "bottom", 
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        plot.title =       element_text(hjust = 0.5, size=16, family="Arial", face="bold"),
+        panel.border =     element_blank(),
+        strip.text.y =     element_text(size=12, family="Arial", face="bold.italic"))
+  
+
+jpeg(filename = "~/Desktop/figure2_ajtmh.jpg", res = 800, width = 10, height = 5, units = "in")
+plot(fig2)
+graphics.off()
+
+plot(fig2)
+     
+```
+
+## Supplementary Table 1
+```{r supptable1, echo=F, warning=F, message=F, results='asis'}
+summclean <- summ %>% 
+  mutate(pool = as.numeric(substr(s_Sample, 1,2)),
+         target = substr(s_Sample, 3, length(s_Sample))) %>% 
+  left_join(x=poolrename, y=., by="pool") 
+
+DT::datatable(summclean, extensions='Buttons',
+               options = list(
+              searching = T,
+              pageLength = 40,
+              dom = 'Bfrtip', 
+              buttons = c('csv')))
+
+
+
+     
+```
