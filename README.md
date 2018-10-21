@@ -2,7 +2,7 @@
 
 Analyses for the manuscript **"Prevalence of molecular markers of antimalarial drug resistance across 
 altitudinal transmission zones in highland western Uganda"** by Ross Boyce, Nicholas F. Brazeau, Travis Fulton, 
-Nick Hathaway, Michael Matte, Moses Ntaro, Edgar Mulogo, Jonathan J. Juliano.  
+Nick Hathaway, Michael Matte, Moses Ntaro, Edgar Mulogo, Jonathan J. Juliano. **(UNDER REVIEW)**
   
 ## Scripts
 ### SeekDeep
