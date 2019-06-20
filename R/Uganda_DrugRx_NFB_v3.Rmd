@@ -64,8 +64,8 @@ projectpath = "~/Documents/MountPoints/mountedMeshnick/Projects/uganda_elevation
 
 
 library(devtools)
-devtools::install_github("nickbrazeau/NFBtools")
-library(NFBtools)
+devtools::install_github("IDEELResearch/SeekDeepRANN")
+library(SeekDeepRANN)
 
 
 ```
@@ -139,9 +139,9 @@ amptargets$paths <- paste0(projectpath, "analysis/", "popClustering/", amptarget
 hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[1], "hapIdTable.tab.txt"), col_names = T)
 selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[1], "selectedClustersInfo.tab.txt"), col_names = T)
 
-simp1 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+simp1 <- SeekDeepRANN::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
 
-simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(input=simp1,  target=paste(amptargets$gene[1]))
+simpPlotObj <- SeekDeepRANN::SeekDeepDat2HapPlotter(input=simp1,  target=paste(amptargets$gene[1]))
 plotly::ggplotly(simpPlotObj)
 
 
@@ -156,9 +156,9 @@ hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[2], "hapIdTable.tab.t
 selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[2], "selectedClustersInfo.tab.txt"), col_names = T)
 
 
-simp2 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+simp2 <- SeekDeepRANN::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
 
-simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(simp2,  paste(amptargets$gene[2]))
+simpPlotObj <- SeekDeepRANN::SeekDeepDat2HapPlotter(simp2,  paste(amptargets$gene[2]))
 plotly::ggplotly(simpPlotObj)
 
 
@@ -172,9 +172,9 @@ hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[3], "hapIdTable.tab.t
 selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[3], "selectedClustersInfo.tab.txt"), col_names = T)
 
 
-simp3 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+simp3 <- SeekDeepRANN::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
 
-simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(simp3,  paste(amptargets$gene[3]))
+simpPlotObj <- SeekDeepRANN::SeekDeepDat2HapPlotter(simp3,  paste(amptargets$gene[3]))
 plotly::ggplotly(simpPlotObj)
 
 
@@ -187,9 +187,9 @@ hapIDtable <- readr::read_tsv(file=paste0(amptargets$paths[4], "hapIdTable.tab.t
 selectedclusterinfo <- readr::read_tsv(file=paste0(amptargets$paths[4], "selectedClustersInfo.tab.txt"), col_names = T)
 
 
-simp4 <- NFBtools::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
+simp4 <- SeekDeepRANN::SeekDeepOutput2SeekDeepDat(selectedclusterinfo)
 
-simpPlotObj <- NFBtools::SeekDeepDat2HapPlotter(simp4,  paste(amptargets$gene[4]))
+simpPlotObj <- SeekDeepRANN::SeekDeepDat2HapPlotter(simp4,  paste(amptargets$gene[4]))
 plotly::ggplotly(simpPlotObj)
 
 ```
@@ -203,7 +203,7 @@ plotly::ggplotly(simpPlotObj)
 ```{r, echo=F, warning=F, message=F}
 
 
-crt_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp4, 
+crt_variantannot <- SeekDeepRANN::SeekDeepDat2ExonAnnotation(input = simp4, 
                    gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
                    geneid = "PF3D7_0709000", 
                    ncbigeneticcode=1, 
@@ -230,7 +230,7 @@ crt_variantannot %>%
 ```{r, echo=F, warning=F, message=F}
 
 
-kelch_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp1,
+kelch_variantannot <- SeekDeepRANN::SeekDeepDat2ExonAnnotation(input = simp1,
                    gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
                    geneid = "PF3D7_1343700", 
                    ncbigeneticcode=1, 
@@ -255,7 +255,7 @@ kelch_variantannot %>%
 ### PfMDR1E
 ```{r, echo=F, warning=F, message=F}
 
-Pfmdr11_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp2, 
+Pfmdr11_variantannot <- SeekDeepRANN::SeekDeepDat2ExonAnnotation(input = simp2, 
                    gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
                    geneid = "PF3D7_0523000", 
                    ncbigeneticcode=1, 
@@ -280,7 +280,7 @@ Pfmdr11_variantannot %>%
 ### PfMDR1L
 ```{r, echo=F, warning=F, message=F}
 
-Pfmdr12_variantannot <- NFBtools::SeekDeepDat2ExonAnnotation(input = simp3, 
+Pfmdr12_variantannot <- SeekDeepRANN::SeekDeepDat2ExonAnnotation(input = simp3, 
                    gff = "~/Documents/MountPoints/mountIDEEL/resources/genomes/Pfalciparum/info/gff/Pf3d7.gff", 
                    geneid = "PF3D7_0523000", 
                    ncbigeneticcode=1, 
@@ -511,14 +511,14 @@ eda_hap <- left_join(eda_hap, poolrename, by=c("pool"))
 fig2 <- eda_hap %>% 
   dplyr::filter(mutation == "WT") %>% 
   dplyr::filter(gene %in% c("pfcrt", "Pfmdr1E")) %>%
-  dplyr::mutate(gene_f = factor(gene, levels = c("pfcrt", "Pfmdr1E"), labels = c("pfcrt", "pfmdr1E"))) %>% 
+  dplyr::mutate(gene_f = factor(gene, levels = c("pfcrt", "Pfmdr1E"), labels = c("pfcrt", "pfmdr1-early"))) %>% 
   dplyr::mutate(elev_f = factor(elev, levels=rev(c("low", "med", "high")), labels=rev(c("Low", "Medium", "High")))) %>% 
   dplyr::mutate(rval_f = factor(rval, levels=c("Nyambyagi", "Sebwe", "Mubuku"))) %>% 
   dplyr::mutate(freq_adj = ifelse(is.na(freq), 0, freq)) %>% 
   ggplot() +
   geom_tile(aes(x=elev_f, y=rval_f, fill=freq_adj), color = "#f0f0f0", size=0.8) +
   geom_text(aes(x=elev_f, y=rval_f, label=poolrename), family="Arial", size = 4, fontface="bold") +
-  facet_grid(gene ~ .) +
+  facet_grid(gene_f ~ .) +
   scale_fill_gradientn("Wildtype Haplotype \n Frequency", colours = c("#a50026", "#ffffbf", "#313695"), limits=c(0,1)) +
   ggtitle("Frequency of Wildtype Haplotypes by River-Valley and Elevation \n across Putative Drug Resistance Genes") +
   xlab("Elevation") + ylab("River-Valley") + 
